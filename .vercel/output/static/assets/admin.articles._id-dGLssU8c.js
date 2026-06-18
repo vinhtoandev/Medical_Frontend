@@ -1,0 +1,1 @@
+import{N as o,j as r}from"./index-DnkcP262.js";import{A as e}from"./article-form-BRmB6JIu.js";import"./arrow-left-J_cAl8pt.js";function m(){const{article:t}=o.useLoaderData();return r.jsx(e,{existing:t})}export{m as component};

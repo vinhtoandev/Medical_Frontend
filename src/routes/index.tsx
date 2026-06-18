@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { SiteShell } from "@/components/site-shell";
 import { CategoryFilter } from "@/components/category-filter";
 import { PaginatedArticles } from "@/components/paginated-articles";
-import { articles, categoryBySlug, formatDate } from "@/lib/mock-data";
+import { fetchArticles, fetchCategories, formatDate } from "@/lib/api-client";
+import type { ArticlesPage } from "@/lib/api-client";
+import type { Article, Category } from "@/lib/api-types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,13 +24,49 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: async () => {
+    const [articlesData, categories] = await Promise.all([
+      fetchArticles({ page: 0, size: 7 }),
+      fetchCategories(),
+    ]);
+    return { articlesData, categories };
+  },
   component: HomePage,
 });
 
 function HomePage() {
-  const featured = articles[0];
-  const featuredCat = categoryBySlug(featured.categorySlug);
-  const rest = articles.slice(1);
+  const { articlesData: initial, categories } = Route.useLoaderData() as {
+    articlesData: ArticlesPage;
+    categories: Category[];
+  };
+
+  const [page, setPage] = useState(0);
+  const [pageData, setPageData] = useState<ArticlesPage>(initial);
+
+  // Đồng bộ lại khi loader data thay đổi (quay lại trang từ cache)
+  useEffect(() => {
+    setPageData(initial);
+    setPage(0);
+  }, [initial]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const featured: Article | undefined = pageData.articles[0];
+  const rest = pageData.articles.slice(1);
+
+  const handlePageChange = async (newPage: number) => {
+    const data = await fetchArticles({ page: newPage, size: 7 });
+    setPageData(data);
+    setPage(newPage);
+  };
+
+  if (!featured) {
+    return (
+      <SiteShell>
+        <div className="mx-auto max-w-7xl px-4 py-24 text-center">
+          <p className="text-muted-foreground">Chưa có bài viết nào.</p>
+        </div>
+      </SiteShell>
+    );
+  }
 
   return (
     <SiteShell>
@@ -79,7 +118,7 @@ function HomePage() {
             </p>
             <div className="mt-5 flex items-center gap-4 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
-                {featuredCat?.name}
+                {featured.categoryName}
               </span>
               <span className="opacity-30">•</span>
               <span>{formatDate(featured.publishedAt)}</span>
@@ -95,10 +134,16 @@ function HomePage() {
         </div>
 
         <div className="mb-10">
-          <CategoryFilter />
+          <CategoryFilter categories={categories} />
         </div>
 
-        <PaginatedArticles articles={rest} resetKey="all" />
+        <PaginatedArticles
+          articles={rest}
+          resetKey="all"
+          totalPages={pageData.totalPages}
+          currentPage={page}
+          onPageChange={handlePageChange}
+        />
       </div>
     </SiteShell>
   );

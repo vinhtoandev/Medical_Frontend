@@ -1,8 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { Stethoscope } from "lucide-react";
-import { categories } from "@/lib/mock-data";
+import { fetchCategories } from "@/lib/api-client";
+import { useEffect, useState } from "react";
+import type { Category } from "@/lib/api-types";
 
 export function SiteFooter() {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetchCategories()
+      .then((cats) => setCategories(cats))
+      .catch(() => {}); // silent fail for footer
+  }, []);
   return (
     <footer className="mt-24 border-t border-border bg-secondary/40">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr]">

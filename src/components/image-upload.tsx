@@ -1,4 +1,7 @@
-import { ImagePlus, X } from "lucide-react";
+import { useState } from "react";
+import { ImagePlus, X, Loader2 } from "lucide-react";
+import { uploadImageApi } from "@/lib/api-client";
+import { toast } from "sonner";
 
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -10,8 +13,8 @@ export function fileToDataUrl(file: File): Promise<string> {
 }
 
 /**
- * Single image upload field. In this UI prototype the image is stored as a
- * data URL; wire to Cloudinary (or another store) on the backend later.
+ * Single image upload field.
+ * Uploads the file to S3 via the backend and stores the returned URL.
  */
 export function ImageUpload({
   value,
@@ -22,11 +25,25 @@ export function ImageUpload({
   onChange: (url: string) => void;
   label?: string;
 }) {
+  const [uploading, setUploading] = useState(false);
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await fileToDataUrl(file);
-    onChange(url);
+
+    setUploading(true);
+    const toastId = toast.loading("Đang tải ảnh bìa lên...");
+    try {
+      const url = await uploadImageApi(file);
+      onChange(url);
+      toast.success("Tải ảnh bìa thành công", { id: toastId });
+    } catch (err) {
+      toast.error("Tải ảnh thất bại: " + (err as Error).message, { id: toastId });
+    } finally {
+      setUploading(false);
+      // Reset input so same file can be re-selected
+      e.target.value = "";
+    }
   };
 
   return (
@@ -48,10 +65,25 @@ export function ImageUpload({
           </button>
         </div>
       ) : (
-        <label className="flex aspect-[16/9] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/40">
-          <ImagePlus className="size-6" />
-          <span className="text-sm">Nhấn để tải ảnh lên</span>
-          <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        <label className={`flex aspect-[16/9] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/40 ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+          {uploading ? (
+            <>
+              <Loader2 className="size-6 animate-spin" />
+              <span className="text-sm">Đang tải lên...</span>
+            </>
+          ) : (
+            <>
+              <ImagePlus className="size-6" />
+              <span className="text-sm">Nhấn để tải ảnh lên</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
         </label>
       )}
     </div>

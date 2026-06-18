@@ -14,6 +14,13 @@ const navItems = (onClick?: () => void) => (
       Bài viết
     </Link>
     <Link
+      to="/kiem-tra"
+      onClick={onClick}
+      className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary [&.active]:text-primary md:px-0 md:py-0"
+    >
+      Nhận diện
+    </Link>
+    <Link
       to="/danh-muc/$slug"
       params={{ slug: "benh-da-lieu" }}
       onClick={onClick}
@@ -67,12 +74,7 @@ export function SiteHeader() {
             <span className="hidden md:inline">Tìm kiếm bài viết...</span>
           </Link>
 
-          <Link
-            to="/admin"
-            className="hidden rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:inline-flex"
-          >
-            Quản trị
-          </Link>
+
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger className="md:hidden" aria-label="Mở menu">

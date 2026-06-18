@@ -1,13 +1,20 @@
 import { Link } from "@tanstack/react-router";
-import { X } from "lucide-react";
-import { categories } from "@/lib/mock-data";
+import type { Category } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
 /**
  * Single-select category filter chips.
  * `activeSlug` undefined => "Tất cả" selected.
+ * `categories` passed as prop (from API loader).
  */
-export function CategoryFilter({ activeSlug }: { activeSlug?: string }) {
+export function CategoryFilter({
+  activeSlug,
+  categories,
+}: {
+  activeSlug?: string;
+  categories: Category[];
+}) {
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
       <Link

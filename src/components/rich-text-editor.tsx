@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import { uploadImageApi } from "@/lib/api-client";
+import { toast } from "sonner";
 import {
   Bold,
   Italic,
@@ -16,9 +18,9 @@ import {
   ImagePlus,
   Undo,
   Redo,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fileToDataUrl } from "@/components/image-upload";
 
 function ToolbarButton({
   onClick,
@@ -58,7 +60,7 @@ export function RichTextEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit,
-      Image.configure({ inline: false, allowBase64: true }),
+      Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Soạn nội dung bài viết..." }),
     ],
@@ -71,6 +73,7 @@ export function RichTextEditor({
       },
     },
   });
+  const uploadingRef = useRef(false);
 
   // Keep editor in sync if the value is reset externally (e.g. loading an article)
   useEffect(() => {
@@ -87,14 +90,24 @@ export function RichTextEditor({
   }
 
   const addImageFromFile = async () => {
+    if (uploadingRef.current) return;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
-      const url = await fileToDataUrl(file);
-      editor.chain().focus().setImage({ src: url }).run();
+      uploadingRef.current = true;
+      const toastId = toast.loading("Đang tải ảnh lên...");
+      try {
+        const url = await uploadImageApi(file);
+        editor?.chain().focus().setImage({ src: url }).run();
+        toast.success("Tải ảnh thành công", { id: toastId });
+      } catch (err) {
+        toast.error("Tải ảnh thất bại: " + (err as Error).message, { id: toastId });
+      } finally {
+        uploadingRef.current = false;
+      }
     };
     input.click();
   };

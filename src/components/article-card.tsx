@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { type Article, categoryBySlug, formatDate } from "@/lib/mock-data";
+import type { Article } from "@/lib/api-types";
+import { formatDate } from "@/lib/api-client";
 
 export function ArticleCard({
   article,
@@ -8,8 +9,6 @@ export function ArticleCard({
   article: Article;
   index?: number;
 }) {
-  const category = categoryBySlug(article.categorySlug);
-
   return (
     <Link
       to="/bai-viet/$slug"
@@ -29,7 +28,7 @@ export function ArticleCard({
       </div>
       <div className="mb-2 flex items-center gap-3">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-          {category?.name}
+          {article.categoryName}
         </span>
         <span className="text-[11px] text-muted-foreground">
           {formatDate(article.publishedAt)}

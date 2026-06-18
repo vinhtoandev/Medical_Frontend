@@ -1,76 +1,106 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Save, Sparkles, ArrowLeft } from "lucide-react";
+import { Save, Sparkles, ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { ImageUpload } from "@/components/image-upload";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import {
-  useCategories,
-  createArticle,
-  updateArticle,
-  slugify,
-  type ArticleInput,
-} from "@/lib/admin-store";
-import type { Article } from "@/lib/mock-data";
+  fetchCategories,
+  createArticleApi,
+  updateArticleApi,
+} from "@/lib/api-client";
+import type { Article, Category } from "@/lib/api-types";
+import { useEffect } from "react";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+// Slug helper: convert Vietnamese to ASCII slug
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 export function ArticleForm({ existing }: { existing?: Article }) {
   const navigate = useNavigate();
-  const categories = useCategories();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  // Form state
   const [title, setTitle] = useState(existing?.title ?? "");
-  const [slug, setSlug] = useState(existing?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!existing);
   const [excerpt, setExcerpt] = useState(existing?.excerpt ?? "");
   const [content, setContent] = useState(existing?.content ?? "");
   const [thumbnail, setThumbnail] = useState(existing?.thumbnail ?? "");
-  const [categorySlug, setCategorySlug] = useState(
-    existing?.categorySlug ?? categories[0]?.slug ?? "",
+  const [categoryId, setCategoryId] = useState<string>(
+    existing ? String((existing as unknown as { categoryId?: number }).categoryId ?? "") : ""
   );
-  const [author, setAuthor] = useState(existing?.author ?? "Ban biên tập");
-  const [readingMinutes, setReadingMinutes] = useState(
-    existing?.readingMinutes ?? 5,
-  );
-  const [publishedAt, setPublishedAt] = useState(
-    existing?.publishedAt ?? todayIso(),
-  );
+  const [status, setStatus] = useState<"PUBLISHED" | "DRAFT">("PUBLISHED");
+  const [publishedAt] = useState(existing?.publishedAt ?? todayIso());
 
+  // Auto-slug from title
+  const [slug, setSlug] = useState(existing?.slug ?? "");
   const onTitleChange = (v: string) => {
     setTitle(v);
     if (!slugTouched) setSlug(slugify(v));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load categories from API
+  useEffect(() => {
+    fetchCategories()
+      .then((cats) => {
+        setCategories(cats);
+        if (!categoryId && cats.length > 0) setCategoryId(String(cats[0].id));
+      })
+      .catch(() => toast.error("Không thể tải danh mục"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return toast.error("Vui lòng nhập tiêu đề.");
-    if (!categorySlug) return toast.error("Vui lòng chọn danh mục.");
+    if (!categoryId) return toast.error("Vui lòng chọn danh mục.");
 
-    const input: ArticleInput = {
-      title: title.trim(),
-      slug: slug.trim() || slugify(title),
-      excerpt: excerpt.trim(),
-      content,
-      thumbnail,
-      categorySlug,
-      author: author.trim() || "Ban biên tập",
-      readingMinutes: Number(readingMinutes) || 5,
-      publishedAt,
-    };
+    setLoading(true);
+    try {
+      const payload = {
+        title: title.trim(),
+        summary: excerpt.trim(),
+        content,
+        thumbnailUrl: thumbnail,
+        categoryId: Number(categoryId),
+        status,
+      };
 
-    if (existing) {
-      updateArticle(existing.id, input);
-    } else {
-      createArticle(input);
+      if (existing) {
+        await updateArticleApi(Number(existing.id), payload);
+        toast.success("Đã cập nhật bài viết", {
+          description: "Embedding đã được tái tạo tự động.",
+        });
+      } else {
+        await createArticleApi(payload);
+        toast.success("Đã lưu bài viết", {
+          description: "Embedding ngữ nghĩa đã được tạo.",
+        });
+      }
+      navigate({ to: "/admin" });
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === "UNAUTHORIZED") {
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        navigate({ to: "/admin" });
+      } else {
+        toast.error("Lưu thất bại: " + msg);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    // Mimic the backend behaviour: embedding is generated on save.
-    toast.success(
-      existing ? "Đã cập nhật bài viết" : "Đã lưu bài viết",
-      { description: "Đã tạo embedding tiêu đề cho tìm kiếm ngữ nghĩa." },
-    );
-    navigate({ to: "/admin" });
   };
 
   const inputCls =
@@ -90,13 +120,24 @@ export function ArticleForm({ existing }: { existing?: Article }) {
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           {existing ? "Chỉnh sửa bài viết" : "Viết bài mới"}
         </h1>
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <Save className="size-4" />
-          {existing ? "Cập nhật" : "Lưu bài viết"}
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "PUBLISHED" | "DRAFT")}
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-primary/40"
+          >
+            <option value="PUBLISHED">Xuất bản</option>
+            <option value="DRAFT">Nháp</option>
+          </select>
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {loading ? "Đang lưu..." : existing ? "Cập nhật" : "Lưu bài viết"}
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -127,8 +168,7 @@ export function ArticleForm({ existing }: { existing?: Article }) {
             <label className="mb-2 block text-sm font-medium">Nội dung</label>
             <RichTextEditor value={content} onChange={setContent} />
             <p className="mt-2 text-xs text-muted-foreground">
-              Dùng nút ảnh trên thanh công cụ để chèn ảnh ở đầu, giữa hoặc cuối
-              bài — hỗ trợ nhiều ảnh.
+              Dùng nút ảnh trên thanh công cụ để chèn ảnh — hỗ trợ nhiều ảnh.
             </p>
           </div>
         </div>
@@ -140,12 +180,15 @@ export function ArticleForm({ existing }: { existing?: Article }) {
           <div>
             <label className="mb-2 block text-sm font-medium">Danh mục</label>
             <select
-              value={categorySlug}
-              onChange={(e) => setCategorySlug(e.target.value)}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               className={inputCls}
             >
+              {categories.length === 0 && (
+                <option value="">Đang tải danh mục...</option>
+              )}
               {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
+                <option key={c.id} value={String(c.id)}>
                   {c.name}
                 </option>
               ))}
@@ -163,36 +206,18 @@ export function ArticleForm({ existing }: { existing?: Article }) {
               placeholder="duong-dan-bai-viet"
               className={inputCls + " font-mono text-xs"}
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Ngày đăng</label>
-              <input
-                type="date"
-                value={publishedAt}
-                onChange={(e) => setPublishedAt(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Phút đọc</label>
-              <input
-                type="number"
-                min={1}
-                value={readingMinutes}
-                onChange={(e) => setReadingMinutes(Number(e.target.value))}
-                className={inputCls}
-              />
-            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Slug được tự động sinh từ tiêu đề.
+            </p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">Tác giả</label>
+            <label className="mb-2 block text-sm font-medium">Ảnh bìa URL</label>
             <input
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              className={inputCls}
+              value={thumbnail}
+              onChange={(e) => setThumbnail(e.target.value)}
+              placeholder="https://..."
+              className={inputCls + " font-mono text-xs"}
             />
           </div>
 
@@ -202,8 +227,8 @@ export function ArticleForm({ existing }: { existing?: Article }) {
               Tìm kiếm ngữ nghĩa
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Khi lưu, hệ thống sẽ tự động tạo embedding cho tiêu đề và lưu vào
-              pgvector để phục vụ tìm kiếm tương đồng.
+              Khi lưu, hệ thống tự động gọi OpenAI tạo vector embedding cho tiêu đề
+              + tóm tắt và lưu vào pgvector.
             </p>
           </div>
         </div>

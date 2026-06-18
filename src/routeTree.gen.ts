@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimKiemRouteImport } from './routes/tim-kiem'
+import { Route as KiemTraRouteImport } from './routes/kiem-tra'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -22,6 +23,11 @@ import { Route as AdminArticlesIdRouteImport } from './routes/admin.articles.$id
 const TimKiemRoute = TimKiemRouteImport.update({
   id: '/tim-kiem',
   path: '/tim-kiem',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KiemTraRoute = KiemTraRouteImport.update({
+  id: '/kiem-tra',
+  path: '/kiem-tra',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -68,6 +74,7 @@ const AdminArticlesIdRoute = AdminArticlesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/kiem-tra': typeof KiemTraRoute
   '/tim-kiem': typeof TimKiemRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/bai-viet/$slug': typeof BaiVietSlugRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/kiem-tra': typeof KiemTraRoute
   '/tim-kiem': typeof TimKiemRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/bai-viet/$slug': typeof BaiVietSlugRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/kiem-tra': typeof KiemTraRoute
   '/tim-kiem': typeof TimKiemRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/bai-viet/$slug': typeof BaiVietSlugRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/kiem-tra'
     | '/tim-kiem'
     | '/admin/categories'
     | '/bai-viet/$slug'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/kiem-tra'
     | '/tim-kiem'
     | '/admin/categories'
     | '/bai-viet/$slug'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/kiem-tra'
     | '/tim-kiem'
     | '/admin/categories'
     | '/bai-viet/$slug'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  KiemTraRoute: typeof KiemTraRoute
   TimKiemRoute: typeof TimKiemRoute
   BaiVietSlugRoute: typeof BaiVietSlugRoute
   DanhMucSlugRoute: typeof DanhMucSlugRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/tim-kiem'
       fullPath: '/tim-kiem'
       preLoaderRoute: typeof TimKiemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kiem-tra': {
+      id: '/kiem-tra'
+      path: '/kiem-tra'
+      fullPath: '/kiem-tra'
+      preLoaderRoute: typeof KiemTraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -228,6 +248,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  KiemTraRoute: KiemTraRoute,
   TimKiemRoute: TimKiemRoute,
   BaiVietSlugRoute: BaiVietSlugRoute,
   DanhMucSlugRoute: DanhMucSlugRoute,

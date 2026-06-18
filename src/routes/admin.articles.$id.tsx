@@ -1,38 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { ArticleForm } from "@/components/article-form";
-import { getArticle } from "@/lib/admin-store";
-import type { Article } from "@/lib/mock-data";
+import { fetchArticleById } from "@/lib/api-client";
+import type { Article } from "@/lib/api-types";
 
 export const Route = createFileRoute("/admin/articles/$id")({
+  loader: async ({ params }) => {
+    const article = await fetchArticleById(Number(params.id));
+    return { article };
+  },
   component: EditArticle,
+  errorComponent: ({ error }) => (
+    <div className="py-24 text-center">
+      <h1 className="font-display text-2xl font-semibold">Không tìm thấy bài viết</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{(error as Error).message}</p>
+      <Link to="/admin" className="mt-4 inline-block text-sm text-primary hover:underline">
+        ← Quay lại quản trị
+      </Link>
+    </div>
+  ),
 });
 
 function EditArticle() {
-  const { id } = Route.useParams();
-  const [article, setArticle] = useState<Article | undefined | null>(undefined);
-
-  // localStorage store reads on the client only
-  useEffect(() => {
-    setArticle(getArticle(id) ?? null);
-  }, [id]);
-
-  if (article === undefined) {
-    return <div className="h-96 animate-pulse rounded-2xl bg-muted/40" />;
-  }
-
-  if (article === null) {
-    return (
-      <div className="py-24 text-center">
-        <h1 className="font-display text-2xl font-semibold">
-          Không tìm thấy bài viết
-        </h1>
-        <Link to="/admin" className="mt-4 inline-block text-sm text-primary hover:underline">
-          ← Quay lại quản trị
-        </Link>
-      </div>
-    );
-  }
-
+  const { article } = Route.useLoaderData() as { article: Article };
   return <ArticleForm existing={article} />;
 }

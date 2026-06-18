@@ -2,20 +2,24 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { ArrowLeft, Clock, CalendarDays, ShieldCheck } from "lucide-react";
 import { SiteShell } from "@/components/site-shell";
 import {
-  articleBySlug,
-  categoryBySlug,
+  fetchArticleBySlug,
+  fetchRelatedArticles,
   formatDate,
-  relatedArticles,
-} from "@/lib/mock-data";
+} from "@/lib/api-client";
+import type { Article } from "@/lib/api-types";
 
 export const Route = createFileRoute("/bai-viet/$slug")({
-  loader: ({ params }) => {
-    const article = articleBySlug(params.slug);
-    if (!article) throw notFound();
-    return { article };
+  loader: async ({ params }) => {
+    try {
+      const article = await fetchArticleBySlug(params.slug);
+      const related = await fetchRelatedArticles(article.id, 4);
+      return { article, related };
+    } catch {
+      throw notFound();
+    }
   },
   head: ({ loaderData }) => {
-    const a = loaderData?.article;
+    const a = loaderData?.article as Article | undefined;
     return {
       meta: [
         { title: a ? `${a.title} — DermaXin` : "Bài viết — DermaXin" },
@@ -43,9 +47,10 @@ export const Route = createFileRoute("/bai-viet/$slug")({
 });
 
 function ArticlePage() {
-  const { article } = Route.useLoaderData();
-  const category = categoryBySlug(article.categorySlug);
-  const related = relatedArticles(article, 4);
+  const { article, related } = Route.useLoaderData() as {
+    article: Article;
+    related: Article[];
+  };
 
   return (
     <SiteShell>
@@ -60,13 +65,13 @@ function ArticlePage() {
 
         <header className="mb-10">
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            {category && (
+            {article.categorySlug && (
               <Link
                 to="/danh-muc/$slug"
-                params={{ slug: category.slug }}
+                params={{ slug: article.categorySlug }}
                 className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/15"
               >
-                {category.name}
+                {article.categoryName}
               </Link>
             )}
             <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -102,21 +107,20 @@ function ArticlePage() {
           />
         </div>
 
-        {/* Rich text content with inline images */}
+        {/* Rich text content */}
         <div
           className="article-prose"
           dangerouslySetInnerHTML={{ __html: article.content }}
         />
 
         {/* Related */}
-        <section className="mt-20 border-t border-border pt-12">
-          <h2 className="mb-8 font-display text-2xl font-semibold">
-            Bài viết liên quan
-          </h2>
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-            {related.map((r) => {
-              const cat = categoryBySlug(r.categorySlug);
-              return (
+        {related.length > 0 && (
+          <section className="mt-20 border-t border-border pt-12">
+            <h2 className="mb-8 font-display text-2xl font-semibold">
+              Bài viết liên quan
+            </h2>
+            <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+              {related.map((r) => (
                 <Link
                   key={r.id}
                   to="/bai-viet/$slug"
@@ -132,16 +136,16 @@ function ArticlePage() {
                     />
                   </div>
                   <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                    {cat?.name}
+                    {r.categoryName}
                   </p>
                   <h3 className="text-sm font-medium leading-snug decoration-border underline-offset-4 group-hover:underline">
                     {r.title}
                   </h3>
                 </Link>
-              );
-            })}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
     </SiteShell>
   );
