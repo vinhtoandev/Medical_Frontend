@@ -15,5 +15,10 @@ export default defineConfig({
   // Use Vercel preset for self-deployment; Lovable sandbox overrides this automatically.
   nitro: {
     preset: "vercel",
-  },
+    // Force-inline tslib so Vercel serverless functions can resolve it at runtime.
+    // Nitro v3 beta sometimes leaves tslib as external when chunking react-remove-scroll.
+    externals: {
+      inline: ["tslib"],
+    },
+  } as any,
 });
