@@ -22,7 +22,8 @@ export default defineConfig({
     },
     // Proxy /api requests to the backend to bypass browser Mixed Content errors
     routeRules: {
-      "/api/**": { proxy: "http://54.179.77.51:5000/**" },
+      "/api/**": { proxy: "http://13.213.84.135:8081/api/**" },
+      "/api-ai/**": { proxy: "http://54.179.77.51:5000/**" },
     },
   } as any,
 });

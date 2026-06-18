@@ -6,6 +6,10 @@
   "rewrites": [
     {
       "source": "/api/:match*",
+      "destination": "http://13.213.84.135:8081/api/:match*"
+    },
+    {
+      "source": "/api-ai/:match*",
       "destination": "http://54.179.77.51:5000/:match*"
     }
   ]

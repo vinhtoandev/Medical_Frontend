@@ -10,7 +10,7 @@ const DEFAULT_MESSAGES = [
   },
 ];
 
-const DEFAULT_API_BASE = "/api";
+const DEFAULT_API_BASE = "/api-ai";
 
 interface Message {
   id: string;
