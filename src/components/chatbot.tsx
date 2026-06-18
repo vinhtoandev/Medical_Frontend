@@ -10,7 +10,7 @@ const DEFAULT_MESSAGES = [
   },
 ];
 
-const DEFAULT_API_BASE = "http://54.179.77.51:5000";
+const DEFAULT_API_BASE = "/api";
 
 interface Message {
   id: string;

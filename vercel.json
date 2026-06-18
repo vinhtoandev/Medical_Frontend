@@ -2,5 +2,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".vercel/output",
   "installCommand": "npm install",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "http://54.179.77.51:5000/:match*"
+    }
+  ]
 }

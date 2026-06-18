@@ -19,7 +19,7 @@ export const Route = createFileRoute("/kiem-tra")({
   component: PredictPage,
 });
 
-const DEFAULT_API_BASE = "http://54.179.77.51:5000";
+const DEFAULT_API_BASE = "/api";
 
 const SEX_OPTIONS = [
   { value: "female", label: "Nữ" },
@@ -67,7 +67,7 @@ export default function PredictPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const apiBase = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
+  const apiBase = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE;
 
   const maskSrc = useMemo(() => buildMaskSrc(result?.overlay_base64), [result]);
 
