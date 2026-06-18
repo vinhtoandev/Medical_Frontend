@@ -20,5 +20,9 @@ export default defineConfig({
     externals: {
       inline: ["tslib"],
     },
+    // Proxy /api requests to the backend to bypass browser Mixed Content errors
+    routeRules: {
+      "/api/**": { proxy: "http://13.213.84.135:8081/api/**" },
+    },
   } as any,
 });
