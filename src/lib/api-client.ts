@@ -8,7 +8,13 @@ import type {
 } from "./api-types";
 import { adaptArticle, adaptCategory } from "./api-types";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+// Detect if we are running on the server (SSR) or browser (CSR)
+const isServer = typeof window === "undefined";
+
+// During SSR (Vercel Serverless Function), Node.js fetch REQUIRES an absolute URL.
+// During CSR (Browser), we MUST use a relative URL ("") so it hits the Vercel proxy (`/api/**`).
+// This entirely avoids Mixed Content errors, even if VITE_API_BASE_URL is set in Vercel Dashboard.
+const BASE_URL = isServer ? "http://13.213.84.135:8081" : "";
 
 // ─── Generic fetch helper ────────────────────────────────────────────────────
 
