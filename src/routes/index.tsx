@@ -25,11 +25,24 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: async () => {
-    const [articlesData, categories] = await Promise.all([
-      fetchArticles({ page: 0, size: 7 }),
-      fetchCategories(),
-    ]);
-    return { articlesData, categories };
+    try {
+      const [articlesData, categories] = await Promise.all([
+        fetchArticles({ page: 0, size: 7 }),
+        fetchCategories(),
+      ]);
+      return { articlesData, categories };
+    } catch {
+      // Backend unreachable during SSR — return empty state, client will refetch
+      return {
+        articlesData: {
+          articles: [],
+          totalPages: 0,
+          totalElements: 0,
+          currentPage: 0,
+        },
+        categories: [] as import("@/lib/api-types").Category[],
+      };
+    }
   },
   component: HomePage,
 });
